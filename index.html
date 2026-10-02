@@ -53,7 +53,7 @@ button.secondary { background: #eef2f7; color: #29313d; }
     <div class="field"><label for="forchangeName">&#20462;&#25913;&#21518;&#22995;&#21517;</label><input id="forchangeName" autocomplete="off" placeholder="UPPERCASE NAME"></div>
     <div class="field"><label for="edition">&#29256;&#26412;</label><select id="edition"><option value="world">&#22269;&#38469;&#29256;</option><option value="interpark">&#38889;&#29256;</option></select></div>
     <div id="passportField" class="field"><label for="passportexpiredDate">&#25252;&#29031;&#36807;&#26399;&#26085;</label><input id="passportexpiredDate" autocomplete="off" placeholder="YYYY-MM-DD"></div>
-    <div class="field"><label for="hbd">&#29983;&#26085;</label><input id="hbd" autocomplete="off" placeholder="MMDD"></div>
+    <div class="field"><label for="hbd">&#29983;&#26085;</label><input id="hbd" autocomplete="off" placeholder="YYMMDD"></div>
     <div class="field"><label for="playDay">&#31080;&#26085;&#26399;</label><input id="playDay" autocomplete="off" placeholder="YYYYMMDD"></div>
     <div class="field"><label for="qrcodeState">&#20108;&#32500;&#30721;&#29366;&#24577;</label><select id="qrcodeState"><option value="">&#19981;&#20462;&#25913;</option><option value="NOTYET">NOTYET</option><option value="ACTIVE">ACTIVE</option><option value="USED_ACTIVE">USED_ACTIVE</option><option value="USED_EXPIRED">USED_EXPIRED</option><option value="EXPIRED">EXPIRED</option><option value="PRINTED">PRINTED</option></select></div>
     <div class="field"><label for="useEnglish">&#26159;&#21542;&#25913;&#20026;&#33521;&#25991;</label><div class="check-field"><input id="useEnglish" type="checkbox"><span class="small">Yes / append change-en.js</span></div></div>
@@ -64,6 +64,8 @@ const ENCRYPTED_PAYLOAD = {"kdf":"PBKDF2-SHA256","iterations":200000,"salt":"z7z
 const OPTION_VARIABLES = { "name": "forchangeName", "birthdate": "hbd", "playdate": "playDay", "qrcode-state": "qrcodeState", "passport-expired-date": "passportexpiredDate" };
 const VARIABLE_NAMES = ["orgName", "forchangeName", "passportexpiredDate", "hbd", "playDay", "qrcodeState"];
 const EDITION_LABELS = { world: "\u56fd\u9645\u7248", interpark: "\u97e9\u7248" };
+const KOREAN_TEMPLATES = [{"name":"yanolja_reservation.js","content":"//url: \"https://nol.yanolja.com/ticket/reservation/detail\"\nfunction onRequest(context, request) {\n    return request;\n}\n\nfunction onResponse(context, request, response) {\n    try {\n        if (!response || !response.body) {\n            console.log(\"response.body 为空\");\n            return response;\n        }\n\n        let body = response.body;\n\n        if (typeof body !== \"string\") {\n            console.log(\"response.body 不是字符串\");\n            return response;\n        }\n\n        const oldName = \"orgName\";\n        //@option: name\n        const newName = \"forchangeName\";\n\n        //@option: name\n        const count = oldName ? body.split(oldName).length - 1 : 0;\n        //@option: name\n        console.log(\"找到原姓名次数: \" + count);\n\n        //@option: name\n        if (oldName && newName) body = body.split(oldName).join(newName);\n\n        response.body = body;\n\n        response.headers = response.headers || {};\n        delete response.headers[\"content-length\"];\n        delete response.headers[\"Content-Length\"];\n\n        return response;\n    } catch (e) {\n        console.log(\"修改响应失败: \" + e);\n        return response;\n    }\n}"},{"name":"yanolja_qr.js","content":"//url: \"https://nol.yanolja.com/ticket/mt/detail\"\nfunction onRequest(context, request) {\n    return request;\n}\n\nfunction onResponse(context, request, response) {\n    try {\n        if (!response || !response.body) {\n            return response;\n        }\n\n        const oldName = \"orgName\";\n        //@option: name\n        const newName = \"forchangeName\";\n\n        //@option: name\n        if (oldName && newName) response.body = response.body.split(oldName).join(newName);\n\n        //@option: playdate\n        const targetPlayDate = \"playDay\";\n        //@option: qrcode-state\n        const newQrState = \"qrcodeState\";\n\n        //@option: qrcode-state\n        if (typeof targetPlayDate !== \"undefined\" && response.body.includes('\\\\\"playDate\\\\\":\\\\\"' + targetPlayDate + '\\\\\"')) {\n        //@option: qrcode-state\n            response.body = response.body.replaceAll(\"NOTYET\", newQrState);\n        //@option: qrcode-state\n        }\n\n        //@option: birthdate\n        const fullBirth = \"hbd\";\n        //@option: birthdate\n        const maskedBirth = \"**\" + fullBirth.slice(2);\n        //@option: birthdate\n        const customerBirth = fullBirth + \"4000000\";\n\n        //@option: birthdate\n        response.body = response.body.replaceAll(\"**0718\", maskedBirth);\n        //@option: birthdate\n        response.body = response.body.replaceAll(\"0607184000000\", customerBirth);\n\n        if (response.headers) {\n            delete response.headers[\"content-length\"];\n            delete response.headers[\"Content-Length\"];\n        }\n\n    } catch (e) {\n        console.log(\"修改响应失败: \" + e);\n    }\n\n    return response;\n}"},{"name":"yanolja_mypage.js","content":"//url: \"https://accounts.yanolja.com/myaccount\"\nfunction onRequest(context, request) {\n    return request;\n}\n\nfunction onResponse(context, request, response) {\n    try {\n        if (!response || !response.body) {\n            return response;\n        }\n\n        const oldName = \"orgName\";\n        //@option: name\n        const newName = \"forchangeName\";\n\n        function maskName(name) {\n            if (!name) return name;\n\n            if (name.length === 1) {\n                return name;\n            }\n\n            if (name.length === 2) {\n                return name[0] + name[1];\n            }\n\n            return (\n                name[0] +\n                \"*\".repeat(name.length - 2) +\n                name[name.length - 1]\n            );\n        }\n\n        const maskedOldName = maskName(oldName);\n        //@option: name\n        const maskedNewName = maskName(newName);\n\n        //@option: name\n        if (maskedOldName && maskedNewName) response.body = response.body.replaceAll(maskedOldName, maskedNewName);\n\n        if (response.headers) {\n            delete response.headers[\"content-length\"];\n            delete response.headers[\"Content-Length\"];\n        }\n\n    } catch (e) {\n        console.log(\"修改脱敏名字失败: \" + e);\n    }\n\n    return response;\n}"}];
+
 let TEMPLATES = null;
 const loginView = document.getElementById("loginView");
 const appView = document.getElementById("appView");
@@ -72,7 +74,39 @@ const loginStatus = document.getElementById("loginStatus");
 const editionEl = document.getElementById("edition");
 const passportField = document.getElementById("passportField");
 function b64ToBytes(value) { return Uint8Array.from(atob(value), char => char.charCodeAt(0)); }
-async function decryptTemplates(password) { const keyMaterial = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]); const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64ToBytes(ENCRYPTED_PAYLOAD.salt), iterations: ENCRYPTED_PAYLOAD.iterations, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["decrypt"]); const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(ENCRYPTED_PAYLOAD.iv) }, key, b64ToBytes(ENCRYPTED_PAYLOAD.data)); return JSON.parse(new TextDecoder().decode(decrypted)); }
+async function decryptTemplates(password) {
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+    );
+    const key = await crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: b64ToBytes(ENCRYPTED_PAYLOAD.salt),
+            iterations: ENCRYPTED_PAYLOAD.iterations,
+            hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]
+    );
+    const decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: b64ToBytes(ENCRYPTED_PAYLOAD.iv) },
+        key,
+        b64ToBytes(ENCRYPTED_PAYLOAD.data)
+    );
+    const templates = JSON.parse(new TextDecoder().decode(decrypted));
+
+    // 国际版及 english 模板保持原加密内容不变，只覆盖韩版基础模板。
+    templates.sources = templates.sources || {};
+    templates.sources.interpark = KOREAN_TEMPLATES;
+
+    return templates;
+}
 function currentEdition() { return editionEl.value === "interpark" ? "interpark" : "world"; }
 function currentEditionLabel() { return EDITION_LABELS[currentEdition()]; }
 function updateEditionFields() { passportField.classList.toggle("hidden", currentEdition() !== "world"); }
@@ -82,7 +116,26 @@ function showApp() { clearForm(); loginView.classList.add("hidden"); appView.cla
 function showLogin() { TEMPLATES = null; document.getElementById("password").value = ""; loginStatus.textContent = ""; statusEl.textContent = ""; appView.classList.add("hidden"); loginView.classList.remove("hidden"); }
 function updateFilesText() { if (!TEMPLATES) return; const selected = selectedTemplates().map(t => t.name).join(", "); document.getElementById("files").textContent = "\u5f53\u524d\u7248\u672c\uff1a" + currentEditionLabel() + " | \u6a21\u677f\uff1a" + selected; }
 function parseUrl(firstLine) { const raw = firstLine.split(":").slice(1).join(":").trim(); const matches = [...raw.matchAll(/"((?:\\.|[^"\\])*)"/g)].map(match => JSON.parse('"' + match[1] + '"')); if (!matches.length) throw new Error("url \u6ce8\u91ca\u683c\u5f0f\u9519\u8bef: " + firstLine); return matches.length === 1 ? matches[0] : matches; }
-function collectReplacements() { const replacements = { orgName: document.getElementById("orgName").value.trim() }; for (const name of VARIABLE_NAMES) { if (name === "orgName") continue; if (name === "passportexpiredDate" && currentEdition() !== "world") continue; const value = document.getElementById(name).value.trim(); if (value) replacements[name] = value; } return replacements; }
+function collectReplacements() {
+    const replacements = {
+        orgName: document.getElementById("orgName").value.trim()
+    };
+
+    for (const name of VARIABLE_NAMES) {
+        if (name === "orgName") continue;
+        if (name === "passportexpiredDate" && currentEdition() !== "world") continue;
+
+        const value = document.getElementById(name).value.trim();
+
+        if (name === "hbd" && value && !/^\d{6}$/.test(value)) {
+            throw new Error("生日请填写完整 6 位：YYMMDD");
+        }
+
+        if (value) replacements[name] = value;
+    }
+
+    return replacements;
+}
 function removeDisabledOptions(lines, replacements) { const kept = []; let skipNext = false; for (const line of lines) { if (skipNext) { skipNext = false; continue; } const trimmed = line.trim(); if (trimmed.startsWith("//@option:")) { const option = trimmed.split(":").slice(1).join(":").trim(); const variable = OPTION_VARIABLES[option]; if (variable && !(variable in replacements)) { skipNext = true; continue; } } kept.push(line); } return kept; }
 function fromCharCodeExpr(value) { const codes = []; for (let i = 0; i < value.length; i++) codes.push(value.charCodeAt(i)); return "String.fromCharCode(" + codes.join(",") + ")"; }
 function applyRawVars(value, replacements) { for (const [key, replacement] of Object.entries(replacements)) value = value.split(key).join(replacement); return value; }
