@@ -127,7 +127,7 @@ function collectReplacements() {
         if (name === "orgName") continue;
         if (name === "passportexpiredDate" && currentEdition() !== "world") continue;
 
-        const value = document.getElementById(name).value.trim();
+        let value = document.getElementById(name).value.trim();
 
         if (name === "hbd" && value && !/^\d{6}$/.test(value)) {
             throw new Error("生日请填写完整 6 位：YYMMDD");
