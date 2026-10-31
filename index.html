@@ -132,6 +132,12 @@ function collectReplacements() {
         if (name === "hbd" && value && !/^\d{6}$/.test(value)) {
             throw new Error("生日请填写完整 6 位：YYMMDD");
         }
+        if (name === "hbd" && value) {
+            // 如果是国际版（world），并且你想在这里应用脱敏处理：
+            if (currentEdition() === "world") {
+                value = "**" + value.slice(2); 
+            }
+        }
 
         if (value) replacements[name] = value;
     }
