@@ -135,7 +135,7 @@ function collectReplacements() {
         if (name === "hbd" && value) {
             // 如果是国际版（world），并且你想在这里应用脱敏处理：
             if (currentEdition() === "world") {
-                value = "**" + value.slice(2); 
+                value = value.slice(2); 
             }
         }
 
